@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Letter Leap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            overscroll-behavior: none;
+            transition: background 0.8s ease;
+        }
+        body {
+            font-family: 'Fredoka One', cursive;
+            touch-action: none;
+            background-color: #f0f8ff; /* Alice Blue */
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            overflow: hidden; 
+        }
+        .game-card {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            border-radius: 0.5rem;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+            min-height: 200px;
+            background-color: transparent;
+            border: 4px solid rgba(42, 117, 187, 0.25);
+            box-sizing: border-box;
+        }
+        .btn-3d {
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            text-shadow: 1px 1px 1px rgba(255,255,255,0.5);
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+        }
+        .btn-block {
+            background: linear-gradient(to top, #3b82f6, #60a5fa);
+            box-shadow: 0 4px 0 #2563eb;
+            color: #fff;
+            font-weight: bold;
+        }
+        .btn-block:hover {
+            transform: scale(1.05) rotate(-2deg);
+        }
+        .btn-block:active {
+            box-shadow: 0 2px 0 #2563eb;
+        }
+        #info-display {
+            background-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border: 3px solid;
+            border-image-slice: 1;
+            transition: border-image 0.8s ease;
+        }
+        .info-text-large-playful {
+            color: #e65100;
+            text-shadow: 2px 2px 0 #FFFFFF, 4px 4px 0 rgba(0,0,0,0.1);
+            -webkit-text-stroke: 1px #a53900;
+        }
+        .info-text-small-playful {
+            color: #e65100;
+            text-shadow: 2px 2px 0 #FFFFFF, 4px 4px 0 rgba(0,0,0,0.1);
+            -webkit-text-stroke: 1px #a53900;
+        }
+        .game-title-playful {
+            color: #2a75bb;
+            text-shadow: 2px 2px 0 #FFFFFF, 4px 4px 0 rgba(0,0,0,0.15);
+            -webkit-text-stroke: 1px #1c5d99;
+        }
+        #main-menu {
+            position: relative;
+            z-index: 1;
+            background-image: linear-gradient(to top, #84fab0 0%, #8fd3f4 100%);
+            width: 100%;
+            height: 100%;
+        }
+        .title-emoji {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="w-full h-full">
+
+    <main id="game-container" class="w-full h-full max-w-5xl mx-auto text-center flex flex-col p-4">
+        <div class="game-card p-2 sm:p-3 flex flex-col h-full">
+            
+            <!-- Main Menu Screen -->
+            <div id="main-menu" class="flex flex-col items-center justify-center p-4 overflow-y-auto">
+                <div class="relative inline-block mb-4 sm:mb-8">
+                    <span class="title-emoji absolute -top-2 -left-3 text-2xl sm:text-3xl md:text-4xl transform -rotate-12">🍎</span>
+                    <h1 class="game-title-playful text-4xl sm:text-5xl md:text-6xl font-bold">Letter Leap</h1>
+                    <span class="title-emoji absolute -top-0 -right-3 text-2xl sm:text-3xl md:text-4xl transform rotate-12">⭐</span>
+                    <span class="title-emoji absolute -bottom-4 left-1/4 text-xl sm:text-2xl md:text-3xl transform rotate-6">🐛</span>
+                    <span class="title-emoji absolute -bottom-2 right-1/4 text-2xl sm:text-3xl md:text-4xl transform -rotate-6">🍌</span>
+                </div>
+                <div id="letter-selection-grid" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-2 md:gap-4 w-full max-w-2xl">
+                    <!-- Letter buttons will be generated here -->
+                </div>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="hidden flex flex-col h-full">
+                <div class="p-2">
+                    <div id="info-display" class="mb-2 p-2 rounded-lg relative z-10">
+                        <div class="flex justify-between items-center mb-2">
+                            <button id="back-to-menu-btn" class="btn-3d btn-block px-4 py-1 text-sm">Back</button>
+                            <div class="bg-white/70 rounded-lg p-2 text-lg text-gray-700">
+                                <span class="font-bold">Score:</span>
+                                <span id="score" class="font-bold text-gray-800">0</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-left pl-2">
+                                <div id="letter-display" class="font-bold info-text-large-playful text-4xl sm:text-5xl">A</div>
+                            </div>
+                            <div class="flex items-center gap-2 pr-2 min-w-0">
+                                <div id="word-display" class="font-bold info-text-small-playful truncate text-lg sm:text-2xl">for Apple</div>
+                                <img id="item-image" src="" alt="Item Image" class="w-10 h-10 md:w-12 md:h-12 bg-white/50 rounded-md object-contain p-1 flex-shrink-0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-grow min-h-0">
+                    <canvas id="gameCanvas" class="relative z-10"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Win Modal -->
+    <div id="win-modal" class="hidden fixed inset-0 flex items-center justify-center p-4 z-40" style="background-color: rgba(0,0,0,0.5);">
+        <div class="bg-white rounded-lg p-8 text-center shadow-2xl">
+            <h2 class="text-4xl font-bold mb-2 text-blue-500">🏆 YOU ARE AMAZING! 🏆</h2>
+            <p class="text-lg text-gray-700 mb-2">You finished all the letters!</p>
+            <button id="play-again-btn" class="btn-3d btn-block py-4 px-10 text-2xl shadow-lg w-full mt-6">
+                Play Again
+            </button>
+        </div>
+    </div>
+    
+    <div id="confetti-container" class="absolute inset-0 w-full h-full pointer-events-none z-50"></div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const letterDisplay = document.getElementById('letter-display');
+        const wordDisplay = document.getElementById('word-display');
+        const itemImage = document.getElementById('item-image');
+        const infoDisplay = document.getElementById('info-display');
+        const winModal = document.getElementById('win-modal');
+        const mainMenu = document.getElementById('main-menu');
+        const letterSelectionGrid = document.getElementById('letter-selection-grid');
+        const gameScreen = document.getElementById('game-screen');
+        const backToMenuBtn = document.getElementById('back-to-menu-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const gameCard = document.querySelector('.game-card');
+        
+        // --- Game Data ---
+        const levels = [
+            { char: 'A', name: 'Apple', itemEmoji: '🍎', count: 5, playerEmoji: '🏃', bg: ['#ff9a9e', '#fecfef'] },
+            { char: 'B', name: 'Banana', itemEmoji: '🍌', count: 5, playerEmoji: '🏃', bg: ['#fff7ad', '#ffa9f9'] },
+            { char: 'C', name: 'Cherry', itemEmoji: '🍒', count: 6, playerEmoji: '🏃', bg: ['#ffdde1', '#ee9ca7'] },
+            { char: 'D', name: 'Donut', itemEmoji: '🍩', count: 5, playerEmoji: '🏃', bg: ['#fde4a9', '#d1b48c'] },
+            { char: 'E', name: 'Egg', itemEmoji: '🥚', count: 6, playerEmoji: '🏃', bg: ['#e0eafc', '#cfdef3'] },
+            { char: 'F', name: 'Frog', itemEmoji: '🐸', count: 5, playerEmoji: '🏃', bg: ['#a8e063', '#56ab2f'] },
+            { char: 'G', name: 'Grapes', itemEmoji: '🍇', count: 6, playerEmoji: '🏃', bg: ['#d49ee8', '#7f7fd5'] },
+            { char: 'H', name: 'Heart', itemEmoji: '❤️', count: 7, playerEmoji: '🏃', bg: ['#ff7e5f', '#feb47b'] },
+            { char: 'I', name: 'Ice Cream', itemEmoji: '🍦', count: 5, playerEmoji: '🏃', bg: ['#fddb92', '#d1fdff'] },
+            { char: 'J', name: 'Juice', itemEmoji: '🧃', count: 6, playerEmoji: '🏃', bg: ['#ffc3a0', '#ffafbd'] },
+            { char: 'K', name: 'Key', itemEmoji: '🔑', count: 7, playerEmoji: '🏃', bg: ['#f6d365', '#fda085'] },
+            { char: 'L', name: 'Lemon', itemEmoji: '🍋', count: 5, playerEmoji: '🏃', bg: ['#fef9d7', '#d299c2'] },
+            { char: 'M', name: 'Mushroom', itemEmoji: '🍄', count: 6, playerEmoji: '🏃', bg: ['#e9d3d0', '#bcaaa4'] },
+            { char: 'N', name: 'Noodle', itemEmoji: '🍜', count: 5, playerEmoji: '🏃', bg: ['#fff8c4', '#f6e383'] },
+            { char: 'O', name: 'Orange', itemEmoji: '🍊', count: 6, playerEmoji: '🏃', bg: ['#ff9a9e', '#fecfef'] },
+            { char: 'P', name: 'Pizza', itemEmoji: '🍕', count: 7, playerEmoji: '🏃', bg: ['#f6d365', '#fda085'] },
+            { char: 'Q', name: 'Queen', itemEmoji: '👑', count: 5, playerEmoji: '🏃', bg: ['#e1bee7', '#ce93d8'] },
+            { char: 'R', name: 'Rainbow', itemEmoji: '🌈', count: 6, playerEmoji: '🏃', bg: ['#a1c4fd', '#c2e9fb'] },
+            { char: 'S', name: 'Star', itemEmoji: '⭐', count: 7, playerEmoji: '�', bg: ['#fffde7', '#fff9c4'] },
+            { char: 'T', name: 'Tree', itemEmoji: '🌳', count: 5, playerEmoji: '🏃', bg: ['#a8e063', '#56ab2f'] },
+            { char: 'U', name: 'Umbrella', itemEmoji: '☂️', count: 6, playerEmoji: '🏃', bg: ['#89f7fe', '#66a6ff'] },
+            { char: 'V', name: 'Volcano', itemEmoji: '🌋', count: 5, playerEmoji: '🏃', bg: ['#ff7e5f', '#feb47b'] },
+            { char: 'W', name: 'Watermelon', itemEmoji: '🍉', count: 6, playerEmoji: '🏃', bg: ['#ff9a9e', '#fecfef'] },
+            { char: 'X', 'name': 'Xylophone', itemEmoji: '🎹', count: 7, playerEmoji: '🏃', bg: ['#ce93d8', '#b39ddb'] },
+            { char: 'Y', name: 'Yarn', itemEmoji: '🧶', count: 5, playerEmoji: '🏃', bg: ['#ffc3a0', '#ffafbd'] },
+            { char: 'Z', name: 'Zebra', itemEmoji: '🦓', count: 6, playerEmoji: '🏃', bg: ['#e0e0e0', '#f5f5f5'] },
+        ];
+
+        // --- Game State ---
+        let currentLevelIndex = 0, score = 0, gameActive = false, animationFrame;
+        const player = { 
+            x: 0, y: 0, width: 0, height: 0, 
+            emoji: '🏃', 
+            speed: 5, bob: 0, bobFrequency: 0.1, bobAmplitude: 4, 
+            scaleX: 1, 
+            scale: 1, trail: [] 
+        };
+        let items = [], keys = {}, touchTarget = null, touchRipple = null;
+        let particles = []; 
+        const BORDER_PADDING = 10; 
+        
+        // --- Functions ---
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.85; 
+                utterance.pitch = 1.2; 
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        
+        function recalculateAndClampPositions() {
+            const logicalWidth = canvas.clientWidth;
+            const logicalHeight = canvas.clientHeight;
+
+            player.width = player.height = Math.min(logicalWidth, logicalHeight) * 0.15;
+            player.x = Math.max(player.width / 2 + BORDER_PADDING, Math.min(logicalWidth - player.width / 2 - BORDER_PADDING, player.x));
+            player.y = Math.max(player.height / 2 + BORDER_PADDING, Math.min(logicalHeight - player.height / 2 - BORDER_PADDING, player.y));
+
+            items.forEach(item => {
+                item.width = item.height = Math.min(logicalWidth, logicalHeight) * 0.08;
+                item.x = Math.max(item.width / 2 + BORDER_PADDING, Math.min(logicalWidth - item.width / 2 - BORDER_PADDING, item.x));
+                item.y = Math.max(item.height / 2 + BORDER_PADDING, Math.min(logicalHeight - item.height / 2 - BORDER_PADDING, item.y));
+            });
+        }
+        
+        function handleResize() {
+            if (gameActive) {
+                const container = canvas.parentElement;
+                if (!container) return;
+                const { width, height } = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                ctx.scale(dpr, dpr);
+                recalculateAndClampPositions();
+            } 
+        }
+
+        function createParticles(x, y) {
+            const particleCount = 25;
+            const cheerfulColors = ['#ffca28', '#ff7e5f', '#5cb85c', '#5bc0de', '#d9534f'];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 6 + 3,
+                    color: cheerfulColors[Math.floor(Math.random() * cheerfulColors.length)],
+                    lifespan: 60 
+                });
+            }
+        }
+
+        function setupLevel(isNewLevel = true) {
+            gameActive = true;
+            const level = levels[currentLevelIndex];
+            
+            handleResize();
+            
+            const logicalWidth = canvas.clientWidth;
+            const logicalHeight = canvas.clientHeight;
+            
+            document.body.style.background = `linear-gradient(to bottom, ${level.bg[0]} 0%, ${level.bg[1]} 100%)`;
+            infoDisplay.style.borderColor = `rgba(0,0,0,0.1)`;
+            
+            player.width = player.height = Math.min(logicalWidth, logicalHeight) * 0.15;
+            player.emoji = level.playerEmoji;
+
+            player.speed = 4.5;
+            player.bobFrequency = 0.1;
+            player.bobAmplitude = 4;
+
+            letterDisplay.textContent = level.char;
+            wordDisplay.textContent = `for ${level.name}`;
+            itemImage.src = `https://emojicdn.elk.sh/${level.itemEmoji}?style=twitter`;
+
+            if (isNewLevel) {
+                particles = [];
+                items = [];
+                for (let i = 0; i < level.count; i++) {
+                    const itemSize = Math.min(logicalWidth, logicalHeight) * 0.08;
+                    items.push({
+                        x: BORDER_PADDING + (itemSize / 2) + Math.random() * (logicalWidth - itemSize - BORDER_PADDING * 2),
+                        y: BORDER_PADDING + (itemSize / 2) + Math.random() * (logicalHeight - itemSize - BORDER_PADDING * 2),
+                        width: itemSize, height: itemSize, emoji: level.itemEmoji, bob: Math.random() * Math.PI * 2, scale: 1,
+                        vx: (Math.random() - 0.5) * 1.5,
+                        vy: (Math.random() - 0.5) * 1.5
+                    });
+                }
+                player.x = logicalWidth / 2;
+                player.y = logicalHeight / 2;
+            }
+
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            update();
+        }
+
+        function draw() {
+            const logicalWidth = canvas.clientWidth;
+            const logicalHeight = canvas.clientHeight;
+            ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+            if (touchRipple && touchRipple.radius < 50) {
+                ctx.beginPath();
+                ctx.arc(touchRipple.x, touchRipple.y, touchRipple.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 126, 95, ${1 - touchRipple.radius / 50})`;
+                ctx.lineWidth = 4; ctx.stroke();
+                touchRipple.radius += 3;
+            }
+
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy; p.lifespan--; p.size *= 0.98;
+                if (p.x > BORDER_PADDING && p.x < logicalWidth - BORDER_PADDING && p.y > BORDER_PADDING && p.y < logicalHeight - BORDER_PADDING) {
+                    ctx.globalAlpha = p.lifespan / 60;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            ctx.globalAlpha = 1;
+            particles = particles.filter(p => p.lifespan > 0);
+
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            player.trail.forEach((p, i) => {
+                ctx.globalAlpha = (i / player.trail.length) * 0.5;
+                ctx.font = `${player.width * 0.3 * (i / player.trail.length)}px sans-serif`;
+                ctx.fillText('⭐', p.x, p.y);
+            });
+            ctx.globalAlpha = 1;
+
+            player.bob += player.bobFrequency;
+            const playerYOffset = Math.sin(player.bob) * player.bobAmplitude;
+            player.scale += (1 - player.scale) * 0.2;
+
+            ctx.save();
+            ctx.translate(player.x, player.y + playerYOffset);
+            ctx.scale(player.scaleX, 1);
+            ctx.font = `${player.width * player.scale}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(player.emoji, 0, 0);
+            ctx.restore();
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            items.forEach(item => {
+                item.bob += 0.05;
+                item.scale += (1 - item.scale) * 0.2;
+                const itemY = item.y + Math.sin(item.bob) * 2;
+                ctx.font = `${item.width * item.scale}px sans-serif`;
+                ctx.fillText(item.emoji, item.x, itemY);
+            });
+
+            ctx.shadowColor = 'transparent';
+        }
+        
+        function moveItems() {
+            const logicalWidth = canvas.clientWidth;
+            const logicalHeight = canvas.clientHeight;
+
+            items.forEach(item => {
+                item.x += item.vx;
+                item.y += item.vy;
+                
+                const minX = item.width / 2 + BORDER_PADDING;
+                const maxX = logicalWidth - item.width / 2 - BORDER_PADDING;
+                const minY = item.height / 2 + BORDER_PADDING;
+                const maxY = logicalHeight - item.height / 2 - BORDER_PADDING;
+
+                if (item.x <= minX || item.x >= maxX) { item.vx *= -1; }
+                if (item.y <= minY || item.y >= maxY) { item.vy *= -1; }
+
+                item.x = Math.max(minX, Math.min(maxX, item.x));
+                item.y = Math.max(minY, Math.min(maxY, item.y));
+            });
+        }
+
+        function movePlayer() {
+            let isMoving = false;
+            let dx = 0, dy = 0;
+
+            if (touchTarget) {
+                isMoving = true;
+                dx = touchTarget.x - player.x;
+                dy = touchTarget.y - player.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > player.speed) {
+                    player.x += (dx / dist) * player.speed;
+                    player.y += (dy / dist) * player.speed;
+                } else {
+                    player.x = touchTarget.x;
+                    player.y = touchTarget.y;
+                    touchTarget = null;
+                }
+            } 
+            else {
+                if (keys['ArrowUp']) { dy = -1; isMoving = true; }
+                if (keys['ArrowDown']) { dy = 1; isMoving = true; }
+                if (keys['ArrowLeft']) { dx = -1; isMoving = true; }
+                if (keys['ArrowRight']) { dx = 1; isMoving = true; }
+                
+                if(isMoving) {
+                    const dist = Math.hypot(dx, dy) || 1;
+                    player.x += (dx / dist) * player.speed;
+                    player.y += (dy / dist) * player.speed;
+                }
+            }
+            
+            // --- FIX: Corrected the direction logic for the running character '🏃' ---
+            // The running emoji faces left by default.
+            if (dx > 0.1) { // Moving right, so flip it
+                player.scaleX = -1;
+            } else if (dx < -0.1) { // Moving left, so use default
+                player.scaleX = 1;
+            }
+            
+            const logicalWidth = canvas.clientWidth;
+            const logicalHeight = canvas.clientHeight;
+            
+            const minX = player.width / 2 + BORDER_PADDING;
+            const maxX = logicalWidth - player.width / 2 - BORDER_PADDING;
+            const minY = player.height / 2 + BORDER_PADDING;
+            const maxY = logicalHeight - player.height / 2 - BORDER_PADDING;
+
+            player.x = Math.max(minX, Math.min(maxX, player.x));
+            player.y = Math.max(minY, Math.min(maxY, player.y));
+            
+            if (isMoving) {
+                player.trail.push({x: player.x, y: player.y});
+                if (player.trail.length > 7) player.trail.shift();
+            } else {
+                if (player.trail.length > 0) player.trail.shift();
+            }
+        }
+        
+        function checkCollisions() {
+            const level = levels[currentLevelIndex];
+            items.forEach((item, index) => {
+                const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                if (dist < player.width / 2 + item.width / 2) {
+                    createParticles(item.x, item.y);
+                    items.splice(index, 1);
+                    score++; 
+                    scoreDisplay.textContent = score;
+                    speak(`${level.char},,, for ${level.name}`);
+                    player.scale = 1.3; 
+                    if (items.length === 0) levelComplete();
+                }
+            });
+        }
+        
+        function levelComplete() {
+            gameActive = false;
+            touchTarget = null;
+            setTimeout(() => {
+                const nextLevel = levels[currentLevelIndex + 1];
+                if (nextLevel) {
+                    currentLevelIndex++;
+                    setupLevel();
+                } else {
+                    winGame();
+                }
+            }, 400); 
+        }
+
+        function winGame() {
+            gameScreen.classList.add('hidden');
+            winModal.classList.remove('hidden');
+            winModal.classList.add('flex');
+            speak('Wow! Congratulations! You are amazing!');
+            launchConfetti('large');
+        }
+
+        function launchConfetti(size = 'small') {
+            const confettiContainer = document.getElementById('confetti-container');
+            if(!confettiContainer) return;
+            confettiContainer.innerHTML = '';
+            const count = size === 'large' ? 200 : 50;
+            const colors = ['#f44336', '#2196f3', '#4caf50', '#ffeb3b', '#ff9800', '#9c27b0', '#67e8f9'];
+            let styleSheet = document.getElementById('confetti-styles');
+            if (!styleSheet) {
+                styleSheet = document.createElement('style');
+                styleSheet.id = 'confetti-styles';
+                document.head.appendChild(styleSheet);
+            }
+            styleSheet.innerHTML = `
+                @keyframes fall {
+                    0% { transform: translateY(0vh) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+                }
+            `;
+
+            for (let i = 0; i < count; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'absolute';
+                confetti.style.width = '10px';
+                confetti.style.height = '20px';
+                confetti.style.opacity = '0';
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.top = `-20px`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `fall ${2 + Math.random() * 2}s linear forwards`;
+                confetti.style.animationDelay = `${Math.random() * 2}s`;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confettiContainer.appendChild(confetti);
+            }
+        }
+
+        function update() {
+            if (!gameActive) return;
+            movePlayer(); 
+            moveItems();
+            checkCollisions(); 
+            draw();
+            animationFrame = requestAnimationFrame(update);
+        }
+
+        function showMainMenu() {
+            gameScreen.classList.add('hidden');
+            winModal.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+            mainMenu.classList.add('flex');
+            mainMenu.style.backgroundImage = `linear-gradient(to top, #84fab0 0%, #8fd3f4 100%)`;
+            document.body.style.background = `#f0f8ff`; 
+            gameActive = false;
+            if(animationFrame) cancelAnimationFrame(animationFrame);
+        }
+
+        function startGame(levelIndex) {
+            currentLevelIndex = levelIndex;
+            score = 0;
+            scoreDisplay.textContent = score;
+            mainMenu.classList.add('hidden');
+            mainMenu.classList.remove('flex');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+            
+            requestAnimationFrame(() => {
+                setupLevel();
+            });
+        }
+        
+        // --- Event Listeners ---
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; touchTarget = null; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            touchTarget = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+            touchRipple = { x: touch.clientX - rect.left, y: touch.clientY - rect.top, radius: 0 };
+        }
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+
+        backToMenuBtn.addEventListener('click', showMainMenu);
+        playAgainBtn.addEventListener('click', showMainMenu);
+
+        // --- Initial Setup ---
+        window.onload = () => {
+            letterSelectionGrid.innerHTML = ''; 
+            levels.forEach((level, index) => {
+                const button = document.createElement('button');
+                button.className = 'btn-3d btn-block text-xl sm:text-2xl shadow-lg flex items-center justify-center aspect-square';
+                button.textContent = level.char;
+                button.onclick = () => startGame(index);
+                letterSelectionGrid.appendChild(button);
+            });
+            
+            window.addEventListener('resize', handleResize);
+            showMainMenu();
+        };
+    </script>
+</body>
+</html>
